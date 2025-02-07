@@ -9,20 +9,22 @@ In MIL, data is organized into bags of instances. Each bag corresponds to a WSI,
   - A positive bag contains at least one positive instance.
   - A negative bag contains only negative instances.
 
-### Mathematical Representation
-Let:
+Let **B** represent a set of bags:
 
-$$
-\mathcal{B} = \{B_1, B_2, \dots, B_N\}
-$$
-represent a set of bags.
+B = {B_1, B_2, ..., B_N}
 
-Each bag is defined as:
+Each bag **B_i** consists of multiple instances:
 
-$$
-B_i = \{x_{i1}, x_{i2}, \dots, x_{im_i}\}
-$$
-where it contains instances.
+B_i = {x_{i1}, x_{i2}, ..., x_{im_i}}
+
+where each **x_ij** is an instance within bag **B_i**.
+
+
+Each bag **B_i** has a label **y_i**, which is defined as:
+  - **y_i = 1** → Positive bag
+  - **y_i = 0** → Negative bag
+
+The instance-level labels **z_ij** are unknown.
 
 The label for bag \( B_i \) is given by \( y_i \), where:
 
