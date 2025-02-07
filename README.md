@@ -24,14 +24,6 @@ Each bag **B_i** has a label **y_i**, which is defined as:
   - **y_i = 1** → Positive bag
   - **y_i = 0** → Negative bag
 
-The instance-level labels **z_ij** are unknown.
-
-The label for bag \( B_i \) is given by \( y_i \), where:
-
-- \( y_i = 1 \) indicates a positive bag.
-- \( y_i = 0 \) indicates a negative bag.
-
-Instance-level labels \( z_{ij} \) are unknown.
 
 The relationship between bag labels and instance labels can be expressed as:
 
