@@ -11,10 +11,10 @@ In MIL, data is organized into bags of instances. Each bag corresponds to a WSI,
 
 ### Mathematical Representation
 Let:
-  - \( \mathcal{B} = \{B_1, B_2, \dots, B_N\} \) represent a set of bags.
-  - Each bag \( B_i = \{x_{i1}, x_{i2}, \dots, x_{im_i}\} \) contains instances.
-  - \( y_i \) is the label for bag \( B_i \), where \( y_i = 1 \) indicates a positive bag and \( y_i = 0 \) indicates a negative bag.
-  - Instance-level labels \( z_{ij} \) are unknown.
+ \( \mathcal{B} = \{B_1, B_2, \dots, B_N\} \) represent a set of bags.
+ Each bag \( B_i = \{x_{i1}, x_{i2}, \dots, x_{im_i}\} \) contains instances.
+\( y_i \) is the label for bag \( B_i \), where \( y_i = 1 \) indicates a positive bag and \( y_i = 0 \) indicates a negative bag.
+Instance-level labels \( z_{ij} \) are unknown.
 
 The relationship between bag labels and instance labels can be expressed as:
 
