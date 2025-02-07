@@ -1,6 +1,32 @@
 # MIL-Camelyon
 
-This repository prepares the **Camelyon16** dataset for **Weakly Supervised Learning** under the **Multiple-Instance-Learning (MIL)** paradigm. Each image is at gigapixel scale, so images must be tiled into target sizes depending on the network architecture (e.g., **256x256** for ResNets). Background tiles are discarded by performing **tissue segmentation**, generating a binary mask, and then selecting tile coordinates accordingly.
+This repository prepares the **Camelyon16** dataset for **Weakly Supervised Learning** under the **Multiple-Instance-Learning (MIL)** paradigm. Each image is at gigapixel scale, so images must be tiled into target sizes depending on the network architecture (e.g., **256x256** for ResNets). Background tiles are discarded by performing **tissue segmentation**, generating a binary mask, and then selecting tile coordinates accordingly. 
+
+## Multiple Instance Learning 
+
+### Problem Formulation
+In MIL, data is organized into bags of instances. Each bag corresponds to a WSI, and the instances within the bag are tiles extracted from that slide. The key assumption in MIL is that:
+  - A positive bag contains at least one positive instance.
+  - A negative bag contains only negative instances.
+
+### Mathematical Representation
+Let:
+  - \( \mathcal{B} = \{B_1, B_2, \dots, B_N\} \) represent a set of bags.
+  - Each bag \( B_i = \{x_{i1}, x_{i2}, \dots, x_{im_i}\} \) contains instances.
+  - \( y_i \) is the label for bag \( B_i \), where \( y_i = 1 \) indicates a positive bag and \( y_i = 0 \) indicates a negative bag.
+  - Instance-level labels \( z_{ij} \) are unknown.
+
+The relationship between bag labels and instance labels can be expressed as:
+
+\[
+y_i =
+\begin{cases}
+1 & \text{if } \exists j : z_{ij} = 1, \\
+0 & \text{if } z_{ij} = 0, \forall j.
+\end{cases}
+\]
+
+
 
 ## Tiling Pipeline
 
@@ -43,4 +69,22 @@ Since loading whole-slide images at full resolution (level 0) is computationally
 
 
 A demonstration of the tiling process can be found in **`tiling_demo.py`**.
+
+## MIL Training
+
+The saved tile coordinates are then used to create a training dictionary with the structure:
+
+```python
+dict ={ 
+
+    "slides": #full paths to WSIs
+    "grid": #see above
+    "targets": #list of slide level class
+    "mult": #scale factor if desired resoltion is different to what is saved in the tiff
+    "level": #WSi pyrmaid level from which tiles should be read (usually 0)
+
+}
+```
+
+This dictionary is then used to create a custom Pytorch DataSet (see **`MIL_DataSet.py`**), which is then used in **`MIL_train.py`**, which trains an instance level representation, to be later used in an aggregator for bag level classification. 
 
