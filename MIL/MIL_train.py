@@ -14,7 +14,7 @@ import torch.utils.data as data
 import torchvision.transforms as transforms
 import torchvision.models as models
 
-parser = argparse.ArgumentParser(description='MIL-Camelyon Script')
+parser = argparse.ArgumentParser(description='MIL-nature-medicine-2019 tile classifier training script')
 parser.add_argument('--train_lib', type=str, default='', help='path to train MIL library binary')
 parser.add_argument('--val_lib', type=str, default='', help='path to validation MIL library binary. If present.')
 parser.add_argument('--output', type=str, default='.', help='name of output file')
@@ -25,6 +25,18 @@ parser.add_argument('--test_every', default=10, type=int, help='test on val ever
 parser.add_argument('--weights', default=0.5, type=float, help='unbalanced positive class weight (default: 0.5, balanced classes)')
 parser.add_argument('--k', default=1, type=int, help='top k tiles are assumed to be of the same class as the slide (default: 1, standard MIL)')
 
+# Check for available devices
+if torch.cuda.is_available():
+    device = torch.device("cuda")  # Use CUDA if available
+    print("Using CUDA")
+elif torch.backends.mps.is_available():
+    device = torch.device("mps")  # Use MPS if available (Apple Silicon)
+    print("Using MPS")
+else:
+    device = torch.device("cpu")  # Fallback to CPU
+    print("Using CPU")
+
+    
 best_acc = 0
 def main():
     global args, best_acc
@@ -33,13 +45,13 @@ def main():
     #cnn
     model = models.resnet34(True)
     model.fc = nn.Linear(model.fc.in_features, 2)
-    model.cuda()
+    model.to(device)
 
     if args.weights==0.5:
-        criterion = nn.CrossEntropyLoss().cuda()
+        criterion = nn.CrossEntropyLoss().to(device)
     else:
         w = torch.Tensor([1-args.weights,args.weights])
-        criterion = nn.CrossEntropyLoss(w).cuda()
+        criterion = nn.CrossEntropyLoss(w).to(device)
     optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-4)
 
     cudnn.benchmark = True
@@ -111,7 +123,7 @@ def inference(run, loader, model):
     with torch.no_grad():
         for i, input in enumerate(loader):
             print('Inference\tEpoch: [{}/{}]\tBatch: [{}/{}]'.format(run+1, args.nepochs, i+1, len(loader)))
-            input = input.cuda()
+            input = input.to(device)
             output = F.softmax(model(input), dim=1)
             probs[i*args.batch_size:i*args.batch_size+input.size(0)] = output.detach()[:,1].clone()
     return probs.cpu().numpy()
@@ -120,8 +132,8 @@ def train(run, loader, model, criterion, optimizer):
     model.train()
     running_loss = 0.
     for i, (input, target) in enumerate(loader):
-        input = input.cuda()
-        target = target.cuda()
+        input = input.to(device)
+        target = target.to(device)
         output = model(input)
         loss = criterion(output, target)
         optimizer.zero_grad()
@@ -159,3 +171,63 @@ def group_max(groups, data, nmax):
     index[:-1] = groups[1:] != groups[:-1]
     out[groups[index]] = data[index]
     return out
+
+class MILdataset(data.Dataset):
+    def __init__(self, libraryfile='', transform=None):
+        lib = torch.load(libraryfile)
+        slides = []
+        for i,name in enumerate(lib['slides']):
+            sys.stdout.write('Opening SVS headers: [{}/{}]\r'.format(i+1, len(lib['slides'])))
+            sys.stdout.flush()
+            slides.append(openslide.OpenSlide(name))
+        print('')
+        #Flatten grid
+        grid = []
+        slideIDX = []
+        for i,g in enumerate(lib['grid']):
+            grid.extend(g)
+            slideIDX.extend([i]*len(g))
+
+        print('Number of tiles: {}'.format(len(grid)))
+        self.slidenames = lib['slides']
+        self.slides = slides
+        self.targets = lib['targets']
+        self.grid = grid
+        self.slideIDX = slideIDX
+        self.transform = transform
+        self.mode = None
+        self.mult = lib['mult']
+        self.size = int(np.round(224*lib['mult']))
+        self.level = lib['level']
+    def setmode(self,mode):
+        self.mode = mode
+    def maketraindata(self, idxs):
+        self.t_data = [(self.slideIDX[x],self.grid[x],self.targets[self.slideIDX[x]]) for x in idxs]
+    def shuffletraindata(self):
+        self.t_data = random.sample(self.t_data, len(self.t_data))
+    def __getitem__(self,index):
+        if self.mode == 1:
+            slideIDX = self.slideIDX[index]
+            coord = self.grid[index]
+            img = self.slides[slideIDX].read_region(coord,self.level,(self.size,self.size)).convert('RGB')
+            if self.mult != 1:
+                img = img.resize((224,224),Image.BILINEAR)
+            if self.transform is not None:
+                img = self.transform(img)
+            return img
+        elif self.mode == 2:
+            slideIDX, coord, target = self.t_data[index]
+            img = self.slides[slideIDX].read_region(coord,self.level,(self.size,self.size)).convert('RGB')
+            if self.mult != 1:
+                img = img.resize((224,224),Image.BILINEAR)
+            if self.transform is not None:
+                img = self.transform(img)
+            return img, target
+    def __len__(self):
+        if self.mode == 1:
+            return len(self.grid)
+        elif self.mode == 2:
+            return len(self.t_data)
+
+if __name__ == '__main__':
+    main()

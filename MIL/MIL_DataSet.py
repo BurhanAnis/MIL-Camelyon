@@ -14,6 +14,7 @@ import torch.utils.data as data
 import torchvision.transforms as transforms
 import torchvision.models as models
 
+
 class MILdataset(data.Dataset):
     def __init__(self, libraryfile='', transform = None):
         lib = torch.load(libraryfile)
