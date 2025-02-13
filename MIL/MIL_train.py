@@ -28,7 +28,7 @@ parser.add_argument('--k', default=1, type=int, help='top k tiles are assumed to
 # Check for available devices
 if torch.cuda.is_available():
     device = torch.device("cuda")  # Use CUDA if available
-    print("Using CUDA")
+    print("CUDA Available: USING")
 elif torch.backends.mps.is_available():
     device = torch.device("mps")  # Use MPS if available (Apple Silicon)
     print("Using MPS")
